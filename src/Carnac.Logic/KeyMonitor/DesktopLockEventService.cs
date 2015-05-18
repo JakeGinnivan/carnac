@@ -1,35 +1,25 @@
 using System;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Microsoft.Win32;
 
 namespace Carnac.Logic.KeyMonitor
 {
     public class DesktopLockEventService : IDesktopLockEventService
     {
-        public event EventHandler<EventArgs> DesktopUnlockedEvent;
-        public event EventHandler<EventArgs> DesktopLockedEvent;
-
-        public DesktopLockEventService()
+        public IObservable<SessionSwitchEventArgs> GetSessionSwitchStream()
         {
-            SystemEvents.SessionSwitch += OnSystemEventsOnSessionSwitch;
-        }
-
-        void OnSystemEventsOnSessionSwitch(object sender, SessionSwitchEventArgs args)
-        {
-            if (args.Reason == SessionSwitchReason.SessionUnlock)
+            // Cannot use Observable.FromEventPattern as it causes an exception about security or something
+            return Observable.Create<SessionSwitchEventArgs>(observer =>
             {
-                OnDesktopUnlockedEvent();
-            }
-        }
+                SessionSwitchEventHandler handler = (sender, args) =>
+                {
+                    observer.OnNext(args);
+                };
 
-        private void OnDesktopUnlockedEvent()
-        {
-            var handler = DesktopUnlockedEvent;
-            if (handler != null) handler(this, EventArgs.Empty);
-        }
-
-        public void Dispose()
-        {
-            SystemEvents.SessionSwitch += OnSystemEventsOnSessionSwitch;
+                SystemEvents.SessionSwitch += handler;
+                return Disposable.Create(() => SystemEvents.SessionSwitch -= handler);
+            });
         }
     }
 }
