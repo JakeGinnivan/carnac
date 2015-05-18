@@ -1,152 +1,94 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Reactive.Subjects;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Windows.Forms;
 
 namespace Carnac.Logic.KeyMonitor
 {
-    [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust")]
-    [PermissionSet(SecurityAction.InheritanceDemand, Name="FullTrust")]
-    public class InterceptKeys : IObservable<InterceptKeyEventArgs>, IDisposable
+    public interface IInterceptKeys
     {
-        static volatile InterceptKeys current;
-        static readonly object CurrentLock = new object();
-        readonly Win32Methods.LowLevelKeyboardProc callback;
-        readonly Subject<InterceptKeyEventArgs> subject;
-        bool disposed;
-        IntPtr hookId = IntPtr.Zero;
-        decimal subscriberCount;
+        IObservable<InterceptKeyEventArgs> GetKeyStream();
+    }
 
-        InterceptKeys()
-        {
-            subject = new Subject<InterceptKeyEventArgs>();
-            callback = HookCallback;
-        }
+    [PermissionSet(SecurityAction.LinkDemand, Name = "FullTrust")]
+    [PermissionSet(SecurityAction.InheritanceDemand, Name = "FullTrust")]
+    public class InterceptKeys : IInterceptKeys
+    {
+        public static readonly InterceptKeys Current = new InterceptKeys();
+        readonly IObservable<InterceptKeyEventArgs> keyStream;
+        Win32Methods.LowLevelKeyboardProc callback;
+        IntPtr hookId;
 
-        public static InterceptKeys Current
+        public InterceptKeys()
         {
-            get
+            keyStream = Observable.Create<InterceptKeyEventArgs>(observer =>
             {
-                if (current == null)
+                callback = (nCode, wParam, lParam) =>
                 {
-                    lock (CurrentLock)
+                    if (nCode >= 0)
                     {
-                        if (current == null)
-                        {
-                            current = new InterceptKeys();
-                        }
+                        var eventArgs = CreateEventArgs(wParam, lParam);
+                        observer.OnNext(eventArgs);
+                        if (eventArgs.Handled)
+                            return (IntPtr)1;
                     }
-                }
-                return current;
-            }
+
+                    return Win32Methods.CallNextHookEx(hookId, nCode, wParam, lParam);
+                };
+                hookId = SetHook();
+                return Disposable.Create(() =>
+                {
+                    Win32Methods.UnhookWindowsHookEx(hookId);
+                    callback = null;
+                });
+            }).Publish().RefCount();
         }
 
-        public void Dispose()
+        public IObservable<InterceptKeyEventArgs> GetKeyStream()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            return keyStream;
         }
 
-        public IDisposable Subscribe(IObserver<InterceptKeyEventArgs> observer)
+        InterceptKeyEventArgs CreateEventArgs(IntPtr wParam, IntPtr lParam)
         {
-            Debug.WriteLine("Subscribed");
-            IDisposable dispose = subject.Subscribe(observer);
-            subscriberCount++;
-            if (subscriberCount == 1)
-                hookId = SetHook(callback);
-            return new DelegateDisposable(() =>
-                                              {
-                                                  subscriberCount--;
-                                                  if (subscriberCount == 0)
-                                                      Win32Methods.UnhookWindowsHookEx(hookId);
-                                                  dispose.Dispose();
-                                              });
-        }
-
-        IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
-        {
-            if (nCode >= 0)
+            bool alt = (Control.ModifierKeys & Keys.Alt) != 0;
+            bool control = (Control.ModifierKeys & Keys.Control) != 0;
+            bool shift = (Control.ModifierKeys & Keys.Shift) != 0;
+            bool keyDown = wParam == (IntPtr)Win32Methods.WM_KEYDOWN;
+            bool keyUp = wParam == (IntPtr)Win32Methods.WM_KEYUP;
+            int vkCode = Marshal.ReadInt32(lParam);
+            var key = (Keys)vkCode;
+            //http://msdn.microsoft.com/en-us/library/windows/desktop/ms646286(v=vs.85).aspx
+            if (key != Keys.RMenu && key != Keys.LMenu && wParam == (IntPtr)Win32Methods.WM_SYSKEYDOWN)
             {
-                bool alt = (Control.ModifierKeys & Keys.Alt) != 0;
-                bool control = (Control.ModifierKeys & Keys.Control) != 0;
-                bool shift = (Control.ModifierKeys & Keys.Shift) != 0;
-                bool keyDown = wParam == (IntPtr)Win32Methods.WM_KEYDOWN;
-                bool keyUp = wParam == (IntPtr)Win32Methods.WM_KEYUP;
-                int vkCode = Marshal.ReadInt32(lParam);
-                var key = (Keys)vkCode;
-                //http://msdn.microsoft.com/en-us/library/windows/desktop/ms646286(v=vs.85).aspx
-                if (key != Keys.RMenu && key != Keys.LMenu && wParam == (IntPtr)Win32Methods.WM_SYSKEYDOWN)
-                {
-                    alt = true;
-                    keyDown = true;
-                }
-                if (key != Keys.RMenu && key != Keys.LMenu && wParam == (IntPtr)Win32Methods.WM_SYSKEYUP)
-                {
-                    alt = true;
-                    keyUp = true;
-                }
-
-                var interceptKeyEventArgs = new InterceptKeyEventArgs(
-                    key,
-                    keyDown ?
-                    KeyDirection.Down: keyUp 
-                    ? KeyDirection.Up: KeyDirection.Unknown,
-                    alt, control, shift);
-
-                subject.OnNext(interceptKeyEventArgs);
-                Debug.Write(key);
-                if (interceptKeyEventArgs.Handled)
-                {
-                    Debug.WriteLine(" handled");
-                    return (IntPtr)1; //handled                    
-                }
+                alt = true;
+                keyDown = true;
+            }
+            if (key != Keys.RMenu && key != Keys.LMenu && wParam == (IntPtr)Win32Methods.WM_SYSKEYUP)
+            {
+                alt = true;
+                keyUp = true;
             }
 
-            return Win32Methods.CallNextHookEx(hookId, nCode, wParam, lParam);
+            return new InterceptKeyEventArgs(
+                key,
+                keyDown ?
+                KeyDirection.Down : keyUp
+                ? KeyDirection.Up : KeyDirection.Unknown,
+                alt, control, shift);
         }
 
-        static IntPtr SetHook(Win32Methods.LowLevelKeyboardProc proc)
+        IntPtr SetHook()
         {
             //TODO: This requires FullTrust to use the Process class - is there any options for doing this in MediumTrust?
             //
             using (Process curProcess = Process.GetCurrentProcess())
             using (ProcessModule curModule = curProcess.MainModule)
             {
-                return Win32Methods.SetWindowsHookEx(Win32Methods.WH_KEYBOARD_LL, proc,
-                                                      Win32Methods.GetModuleHandle(curModule.ModuleName), 0);
-            }
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    if (subject != null)
-                    {
-                        subject.Dispose();
-                    }
-                }
-
-                disposed = true;
-            }
-        }
-
-        class DelegateDisposable : IDisposable
-        {
-            readonly Action dispose;
-
-            public DelegateDisposable(Action dispose)
-            {
-                this.dispose = dispose;
-            }
-
-            public void Dispose()
-            {
-                dispose();
+                return Win32Methods.SetWindowsHookEx(Win32Methods.WH_KEYBOARD_LL, callback, Win32Methods.GetModuleHandle(curModule.ModuleName), 0);
             }
         }
     }

@@ -11,8 +11,8 @@ namespace Carnac.Logic
 {
     public class KeyProvider : IKeyProvider
     {
-        private readonly IObservable<InterceptKeyEventArgs> interceptKeysSource;
         private readonly Dictionary<int, Process> processes;
+        readonly IInterceptKeys interceptKeys;
         private readonly IPasswordModeService passwordModeService;
         private readonly IList<Keys> modifierKeys =
             new List<Keys>
@@ -38,16 +38,16 @@ namespace Carnac.Logic
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        public KeyProvider(IObservable<InterceptKeyEventArgs> interceptKeysSource, IPasswordModeService passwordModeService)
+        public KeyProvider(IInterceptKeys interceptKeys, IPasswordModeService passwordModeService)
         {
             processes = new Dictionary<int, Process>();
-            this.interceptKeysSource = interceptKeysSource;
+            this.interceptKeys = interceptKeys;
             this.passwordModeService = passwordModeService;
         }
 
         public IDisposable Subscribe(IObserver<KeyPress> observer)
         {
-            return interceptKeysSource
+            return interceptKeys.GetKeyStream()
                 .Select(DetectWindowsKey)
                 .Where(k => !IsModifierKeyPress(k) && k.KeyDirection == KeyDirection.Down)
                 .Select(ToCarnacKeyPress)

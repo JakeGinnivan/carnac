@@ -26,7 +26,7 @@ namespace Carnac.Tests
             settingsProvider.GetSettings<PopupSettings>().Returns(new PopupSettings());
             shortcutProvider = Substitute.For<IShortcutProvider>();
             interceptKeysSource = new Subject<InterceptKeyEventArgs>();
-            var keyProvider = new KeyProvider(interceptKeysSource, new PasswordModeService());
+            var keyProvider = new KeyProvider(new FakeInterceptKeys(interceptKeysSource), new PasswordModeService());
             messageProvider = new MessageProvider(keyProvider, shortcutProvider, settingsProvider);
         }
 

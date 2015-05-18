@@ -21,7 +21,7 @@ namespace KeyStreamCapture
         public MainWindow()
         {
             InitializeComponent();
-            InterceptKeys.Current.Subscribe(this);
+            InterceptKeys.Current.GetKeyStream().Subscribe(this);
         }
 
         private void StartCapture(object sender, RoutedEventArgs e)
