@@ -24,7 +24,7 @@ namespace Carnac.Tests
             var provider = new KeyProvider(new FakeInterceptKeys(player), passwordModeService);
 
             // act
-            var processedKeys = ToEnumerable(provider, player);
+            var processedKeys = ToEnumerable(provider.GetKeyPressStream(), player);
 
             // assert
             Assert.Equal(new[] { "Ctrl", "Shift", "L" }, processedKeys.Single().Input);
@@ -38,7 +38,7 @@ namespace Carnac.Tests
             var provider = new KeyProvider(new FakeInterceptKeys(player), passwordModeService);
 
             // act
-            var processedKeys = ToEnumerable(provider, player);
+            var processedKeys = ToEnumerable(provider.GetKeyPressStream(), player);
 
             // assert
 
@@ -53,7 +53,7 @@ namespace Carnac.Tests
             var provider = new KeyProvider(new FakeInterceptKeys(player), passwordModeService);
 
             // act
-            var processedKeys = ToEnumerable(provider, player);
+            var processedKeys = ToEnumerable(provider.GetKeyPressStream(), player);
 
             // assert
             Assert.Equal(new[] { "l" }, processedKeys.Single().Input);
@@ -67,7 +67,7 @@ namespace Carnac.Tests
             var provider = new KeyProvider(new FakeInterceptKeys(player), passwordModeService);
 
             // act
-            var processedKeys = ToEnumerable(provider, player);
+            var processedKeys = ToEnumerable(provider.GetKeyPressStream(), player);
 
             // assert
             Assert.Equal(new[] { "1" }, processedKeys.Single().Input);
@@ -81,7 +81,7 @@ namespace Carnac.Tests
             var provider = new KeyProvider(new FakeInterceptKeys(player), passwordModeService);
 
             // act
-            var processedKeys = ToEnumerable(provider, player);
+            var processedKeys = ToEnumerable(provider.GetKeyPressStream(), player);
 
             // assert
             Assert.Equal(new[] { "!" }, processedKeys.Single().Input);
@@ -95,7 +95,7 @@ namespace Carnac.Tests
             var provider = new KeyProvider(new FakeInterceptKeys(player), passwordModeService);
 
             // act
-            var processedKeys = ToEnumerable(provider, player);
+            var processedKeys = ToEnumerable(provider.GetKeyPressStream(), player);
 
             // assert
             Assert.Equal(new[] { "Win", "e" }, processedKeys.Single().Input);

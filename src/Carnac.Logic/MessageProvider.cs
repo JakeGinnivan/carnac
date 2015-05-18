@@ -22,7 +22,7 @@ namespace Carnac.Logic
         {
             this.shortcutProvider = shortcutProvider;
             settings = settingsProvider.GetSettings<PopupSettings>();
-            keyStream = keyProvider.Subscribe(this);
+            keyStream = keyProvider.GetKeyPressStream().Subscribe(this);
         }
 
         public Message CurrentMessage { get; private set; }

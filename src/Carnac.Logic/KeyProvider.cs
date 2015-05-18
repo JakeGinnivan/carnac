@@ -45,14 +45,13 @@ namespace Carnac.Logic
             this.passwordModeService = passwordModeService;
         }
 
-        public IDisposable Subscribe(IObserver<KeyPress> observer)
+        public IObservable<KeyPress> GetKeyPressStream()
         {
             return interceptKeys.GetKeyStream()
                 .Select(DetectWindowsKey)
                 .Where(k => !IsModifierKeyPress(k) && k.KeyDirection == KeyDirection.Down)
                 .Select(ToCarnacKeyPress)
-                .Where(k => !passwordModeService.CheckPasswordMode(k.InterceptKeyEventArgs))
-                .Subscribe(observer);
+                .Where(k => !passwordModeService.CheckPasswordMode(k.InterceptKeyEventArgs));
         }
 
         private InterceptKeyEventArgs DetectWindowsKey(InterceptKeyEventArgs interceptKeyEventArgs)

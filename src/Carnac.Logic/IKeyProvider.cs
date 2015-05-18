@@ -3,8 +3,8 @@ using Carnac.Logic.Models;
 
 namespace Carnac.Logic
 {
-    public interface IKeyProvider : IObservable<KeyPress>
+    public interface IKeyProvider
     {
-
+        IObservable<KeyPress> GetKeyPressStream();
     }
 }
