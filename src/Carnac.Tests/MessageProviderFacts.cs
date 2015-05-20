@@ -34,7 +34,7 @@ namespace Carnac.Tests
         public void key_with_modifiers_raises_a_new_message()
         {
             // arrange
-            messageProvider.Subscribe(this);
+            messageProvider.GetMessageStream().Subscribe(this);
             KeyStreams.LetterL().Play(interceptKeysSource);
 
             // act
@@ -48,7 +48,7 @@ namespace Carnac.Tests
         public void recognises_shortcuts()
         {
             // arrange
-            messageProvider.Subscribe(this);
+            messageProvider.GetMessageStream().Subscribe(this);
             shortcutProvider.GetShortcutsMatching(Arg.Any<IEnumerable<KeyPress>>())
                 .Returns(new []{new KeyShortcut("MyShortcut", new KeyPressDefinition(Keys.L, shiftPressed:true, controlPressed:true))});
 
@@ -64,7 +64,7 @@ namespace Carnac.Tests
         public void does_not_show_shortcut_name_on_partial_match()
         {
             // arrange
-            messageProvider.Subscribe(this);
+            messageProvider.GetMessageStream().Subscribe(this);
             shortcutProvider.GetShortcutsMatching(Arg.Any<IEnumerable<KeyPress>>())
                 .Returns(new[] { new KeyShortcut("SomeShortcut",
                     new KeyPressDefinition(Keys.U, controlPressed: true),
@@ -82,7 +82,7 @@ namespace Carnac.Tests
         public void does_show_shortcut_name_on_full_match()
         {
             // arrange
-            messageProvider.Subscribe(this);
+            messageProvider.GetMessageStream().Subscribe(this);
             shortcutProvider.GetShortcutsMatching(Arg.Any<IEnumerable<KeyPress>>())
                 .Returns(new[] { new KeyShortcut("SomeShortcut",
                     new KeyPressDefinition(Keys.U, controlPressed: true),

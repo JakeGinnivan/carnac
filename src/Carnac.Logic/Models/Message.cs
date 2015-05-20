@@ -84,7 +84,7 @@ namespace Carnac.Logic.Models
 
         public IObservable<Unit> Updated { get; private set; }
 
-        private void AddKey(KeyPress keyPress)
+        public void AddKey(KeyPress keyPress)
         {
             keyCollection.Add(keyPress);
             if (lastKeyPress != null && lastKeyPress.HasModifierPressed)

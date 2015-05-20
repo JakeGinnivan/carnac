@@ -120,7 +120,7 @@ namespace Carnac.ViewModels
 
         protected override void OnActivate()
         {
-            keySubscription = messageProvider.Subscribe(this);
+            keySubscription = messageProvider.GetMessageStream().Subscribe(this);
         }
 
         protected override void OnDeactivate(bool close)
