@@ -101,5 +101,13 @@ namespace Carnac.Logic
             return Enumerable.Empty<KeyShortcut>();
         }
 
+        public List<KeyShortcut> GetShortcutsStartingWith(KeyPress keys)
+        {
+            var processName = keys.Process.ProcessName;
+            return shortcuts
+                .Where(s => s.Process == processName || string.IsNullOrWhiteSpace(s.Process))
+                .SelectMany(shortcut => shortcut.GetShortcutsMatching(new[] { keys }))
+                .ToList();
+        }
     }
 }

@@ -101,6 +101,7 @@
     <Compile Include="PasswordModeService.cs" />
     <Compile Include="ReplaceKey.cs" />
     <Compile Include="ScreenManager.cs" />
+    <Compile Include="ShortcutAccumulator.cs" />
     <Compile Include="ShortcutCollection.cs" />
     <Compile Include="ShortcutProvider.cs" />
     <Compile Include="Win32Methods.cs" />

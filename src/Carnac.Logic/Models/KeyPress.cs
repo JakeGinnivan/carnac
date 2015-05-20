@@ -34,5 +34,16 @@ namespace Carnac.Logic.Models
                 return InterceptKeyEventArgs.Key >= Keys.A && InterceptKeyEventArgs.Key <= Keys.Z;
             }
         }
+
+        public bool HasModifierPressed
+        {
+            get
+            {
+                return InterceptKeyEventArgs.AltPressed 
+                    || InterceptKeyEventArgs.ControlPressed 
+                    || InterceptKeyEventArgs.ShiftPressed
+                    || WinkeyPressed;
+            }
+        }
     }
 }
